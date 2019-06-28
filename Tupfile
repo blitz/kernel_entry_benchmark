@@ -1,0 +1,9 @@
+include_rules
+
+: foreach *.lds |> !cpp |> %B.ld {linkerscript}
+: foreach *.asm |> !as |> {asm}
+: foreach *.cpp |> !cxx |> {cpp}
+: {linkerscript} {asm} {cpp} |> !ld |> kernel.elf64
+
+: kernel.elf64 |> strip %f -o %o |> kernel.elf64.strip
+: kernel.elf64.strip |> objcopy -O elf32-i386 %f %o |> kernel.elf32
