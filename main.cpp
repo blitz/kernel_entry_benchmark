@@ -2,9 +2,11 @@
 #include <io.hpp>
 #include <selectors.hpp>
 #include <x86-instructions.hpp>
+#include <msr.hpp>
 
 extern "C" void asm_call_gate_entry();
 extern "C" void asm_int_gate_entry();
+extern "C" void asm_syscall_entry();
 extern "C" char kern_stack_end[];
 
 extern "C" [[noreturn]] void main();
@@ -45,6 +47,11 @@ extern "C" void call_gate_entry()
   // Do nothing and return.
 }
 
+extern "C" void syscall_entry()
+{
+  // Do nothing and return.
+}
+
 [[noreturn]] static void exit_via_retf(uint64_t user_rip)
 {
   asm volatile ("push %[user_ss]\n"
@@ -75,7 +82,7 @@ static void do_gate_call(uint16_t selector)
   asm volatile ("mov %%rbp, %[saved_rbp]\n"
                 "rex.W lcall *%[far_ptr]\n"
                 "mov %[saved_rbp], %%rbp\n"
-                : [saved_rbp] "=m" (saved_rbp)
+                : [saved_rbp] "=&m" (saved_rbp)
                 : [far_ptr] "m" (gate)
                 : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
                   "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
@@ -88,11 +95,27 @@ static void do_int()
   asm volatile ("mov %%rbp, %[saved_rbp]\n"
                 "int %[vec]\n"
                 "mov %[saved_rbp], %%rbp\n"
-                : [saved_rbp] "=m" (saved_rbp)
+                : [saved_rbp] "=&m" (saved_rbp)
                 : [vec] "i" (INT_GATE_VECTOR)
                 : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
                   "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+}
 
+static void do_syscall()
+{
+  static uint64_t saved_rbp, saved_rsp;
+
+  asm volatile ("mov %%rbp, %[saved_rbp]\n"
+                "mov %%rsp, %[saved_rsp]\n"
+                "syscall\n"
+                "1:"
+                "mov %[saved_rbp], %%rbp\n"
+                "mov %[saved_rsp], %%rsp\n"
+                : [saved_rbp] "=&m" (saved_rbp),
+                  [saved_rsp] "=&m" (saved_rsp)
+                :
+                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
+                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
 }
 
 [[noreturn]] static void user_do_call_gate()
@@ -100,8 +123,7 @@ static void do_int()
   const int repeat = 16 * 1024;
   uint64_t start, end;
 
-  format("Starting call gate measurement...\n");
-
+  // Call gate measurements
   for (int warm_up = 32; warm_up != 0; warm_up--) {
     do_gate_call(ring3_call_selector);
   }
@@ -115,8 +137,7 @@ static void do_int()
   format("Call gate roundtrip (cycles): ", (end - start) / repeat, "\n");
 
 
-  format("Starting int gate measurement...\n");
-
+  // Interrupt gate measurements
   for (int warm_up = 32; warm_up != 0; warm_up--) {
     do_int();
   }
@@ -128,6 +149,19 @@ static void do_int()
   end = rdtsc();
 
   format("Interrupt gate roundtrip (cycles): ", (end - start) / repeat, "\n");
+
+  // Syscall measurements
+  for (int warm_up = 32; warm_up != 0; warm_up--) {
+    do_syscall();
+  }
+
+  start = rdtsc();
+  for (int rounds = repeat; rounds != 0; rounds--) {
+    do_syscall();
+  }
+  end = rdtsc();
+
+  format("Syscall roundtrip (cycles): ", (end - start) / repeat, "\n");
 
   // Will triple fault...
   cli_hlt();
@@ -142,6 +176,21 @@ static void allow_user_io()
                 "popfq\n"
                 :
                 : "r" (3 << 12));
+}
+
+static void init_syscall()
+{
+  wrmsr(IA32_LSTAR, reinterpret_cast<uintptr_t>(asm_syscall_entry));
+
+  static_assert(ring0_code_selector + 0x8 == ring0_data_selector,
+                "Ring0 code and data selectors do not match SYSRET layout");
+
+  static_assert(ring3_data_selector + 0x8 == ring3_code_selector,
+                "Ring0 code and data selectors do not match SYSRET layout");
+
+  wrmsr(IA32_STAR, ((uint64_t)ring0_code_selector << 32) | (uint64_t)(ring3_code_selector - 0x10) << 48);
+  wrmsr(IA32_FMASK, 0x700);     // Clear TF/DF/IF on system call entry
+  wrmsr(IA32_SYSENTER_CS, 0);   // Disable sysenter
 }
 
 void main()
@@ -161,6 +210,8 @@ void main()
   lidt(idt);
 
   allow_user_io();
+  init_syscall();
+
   exit_via_retf(reinterpret_cast<uintptr_t>(&user_do_call_gate));
 
   cli_hlt();
