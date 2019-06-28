@@ -30,7 +30,7 @@ extern gdt
 
 %define RING0_CODE_SELECTOR 0x08
 %define RING0_DATA_SELECTOR 0x10
-%define GDT_SIZE 0x38
+%define GDT_SIZE 0x48
 
 section .text.init progbits alloc exec nowrite
 bits 32
@@ -100,6 +100,7 @@ done_with_contructors:
   ud2
 
 section .bss
+global kern_stack_end
   align PAGE_SIZE
 kern_stack:
   resb PAGE_SIZE

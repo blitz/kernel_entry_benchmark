@@ -63,6 +63,37 @@ struct gdt_desc {
     return b.t;
   }
 
+  static gdt_desc call_gate(uint16_t sel_, uint64_t offset_, uint8_t dpl)
+  {
+    gdt_desc i;
+
+    i.limit_lo = offset_ & 0xFFFF;
+    i.base_lo = sel_;
+    i.type_dpl = 0b10001100 | (dpl << 5);
+
+    i.limit_flags = (offset_ >> 16) & 0xFF;
+    i.base_hi     = (offset_ >> 24) & 0xFF;
+
+    return i;
+  }
+
+  static gdt_desc call_gate_hi(uint64_t offset_)
+  {
+    gdt_desc i;
+
+    union bare_access {
+      gdt_desc t;
+      uint32_t dword[2];
+
+      bare_access() {}
+    } b;
+
+    b.dword[0] = offset_ >> 32;
+    b.dword[1] = 0;
+
+    return b.t;
+  }
+
   constexpr static gdt_desc kern_code_desc()
   {
     gdt_desc t;
@@ -109,16 +140,19 @@ struct idt_desc {
 
   idt_desc() = default;
 
+  void set_offset(uint64_t offset_)
+  {
+    offset_lo = offset_ & 0xFFFF;
+    offset_hi = (offset_ >> 16) & 0xFFFF;
+    offset_hi2 = offset_ >> 32;
+  }
+
   static idt_desc interrupt_gate(uint16_t sel_, uint64_t offset_, uint8_t ist, uint8_t dpl)
   {
     idt_desc i;
-
-    i.offset_lo = offset_ & 0xFFFF;
+    i.set_offset(offset_);
     i.selector = sel_;
     i.flags = ist | (14 /* type */ << 8) | (dpl << 13) | (1 << 15 /* Present */);
-    i.offset_hi = (offset_ >> 16) & 0xFFFF;
-    i.offset_hi2 = offset_ >> 32;
-
     return i;
   }
 };
