@@ -4,6 +4,7 @@
 #include <x86-instructions.hpp>
 
 extern "C" void asm_call_gate_entry();
+extern "C" void asm_int_gate_entry();
 extern "C" char kern_stack_end[];
 
 extern "C" [[noreturn]] void main();
@@ -34,10 +35,9 @@ static const uint8_t INT_GATE_VECTOR {32};
 
 static idt_desc idt[256];
 
-static void int_gate_entry()
+extern "C" void int_gate_entry(uint64_t *frame)
 {
-  format("interrupt!\n");
-  cli_hlt();
+  // Do nothing and return.
 }
 
 extern "C" void call_gate_entry()
@@ -77,29 +77,59 @@ static void do_gate_call(uint16_t selector)
                 "mov %[saved_rbp], %%rbp\n"
                 : [saved_rbp] "=m" (saved_rbp)
                 : [far_ptr] "m" (gate)
-                : "rax", "rcx", "rdx", "rbx",
-                  "rbp", "rsi", "rdi",
-                  "r8", "r9", "r10", "r11", "r12",
-                  "r13", "r14", "r15");
+                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
+                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+}
+
+static void do_int()
+{
+  static uint64_t saved_rbp;
+
+  asm volatile ("mov %%rbp, %[saved_rbp]\n"
+                "int %[vec]\n"
+                "mov %[saved_rbp], %%rbp\n"
+                : [saved_rbp] "=m" (saved_rbp)
+                : [vec] "i" (INT_GATE_VECTOR)
+                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
+                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+
 }
 
 [[noreturn]] static void user_do_call_gate()
 {
+  const int repeat = 16 * 1024;
+  uint64_t start, end;
+
   format("Starting call gate measurement...\n");
 
   for (int warm_up = 32; warm_up != 0; warm_up--) {
     do_gate_call(ring3_call_selector);
   }
 
-  const int repeat = 16 * 1024;
-  uint64_t start = rdtsc();
+  start = rdtsc();
   for (int rounds = repeat; rounds != 0; rounds--) {
     do_gate_call(ring3_call_selector);
   }
-  uint64_t end = rdtsc();
+  end = rdtsc();
 
   format("Call gate roundtrip (cycles): ", (end - start) / repeat, "\n");
 
+
+  format("Starting int gate measurement...\n");
+
+  for (int warm_up = 32; warm_up != 0; warm_up--) {
+    do_int();
+  }
+
+  start = rdtsc();
+  for (int rounds = repeat; rounds != 0; rounds--) {
+    do_int();
+  }
+  end = rdtsc();
+
+  format("Interrupt gate roundtrip (cycles): ", (end - start) / repeat, "\n");
+
+  // Will triple fault...
   cli_hlt();
   __builtin_unreachable();
 }
@@ -127,7 +157,7 @@ void main()
   ltr(ring0_tss_selector);
 
   // Prepare interrupt and call gate entry points
-  idt[INT_GATE_VECTOR]  = idt_desc::interrupt_gate(ring0_code_selector, reinterpret_cast<uintptr_t>(&int_gate_entry), 0, 3);
+  idt[INT_GATE_VECTOR]  = idt_desc::interrupt_gate(ring0_code_selector, reinterpret_cast<uintptr_t>(&asm_int_gate_entry), 0, 3);
   lidt(idt);
 
   allow_user_io();
