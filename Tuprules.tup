@@ -4,16 +4,16 @@ AS = nasm
 ASFLAGS = -g -f elf64 -F dwarf
 
 CPP = cpp
-CPPFLAGS  = -P -nostdinc
+CPPFLAGS  = -nostdinc
 
 CXX = c++
-CXXFLAGS += -g -O2 -march=x86-64 -mtune=skylake -std=c++17 -Wall -nostdinc -nostdinc++
+CXXFLAGS += -g -O2 -march=x86-64 -mtune=skylake -std=c++17 -Wall -nostdinc++
 CXXFLAGS += -mno-red-zone  -mgeneral-regs-only
 CXXFLAGS += -ffreestanding -fno-asynchronous-unwind-tables -fno-threadsafe-statics -fno-rtti -fno-exceptions
 
 LINKFLAGS = -g -nostdlib -Wl,-n -Wl,-T
 
-!cpp = |> $(CPP) $(CPPFLAGS) %f -o %o |>
-!cxx = |> $(CXX) $(CXXFLAGS) -c %f -o %o |> %B.o
+!cpp = |> $(CPP) -P $(CPPFLAGS) %f -o %o |>
+!cxx = |> $(CXX) $(CPPFLAGS) $(CXXFLAGS) -c %f -o %o |> %B.o
 !as = |> $(AS) $(ASFLAGS) %f -o %o |> %B.o
 !ld = |> $(CXX) $(CXXFLAGS) $(LINKFLAGS) %f -o %o |>

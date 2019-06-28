@@ -1,6 +1,8 @@
 ; -*- Mode: nasm -*-
 
+extern _init_array_start, _init_array_end
 extern main
+extern gdt
 
 %define PAGE_SIZE 4096
 %define PTE_P (1 << 0)
@@ -28,6 +30,7 @@ extern main
 
 %define RING0_CODE_SELECTOR 0x08
 %define RING0_DATA_SELECTOR 0x10
+%define GDT_SIZE 0x38
 
 section .text.init progbits alloc exec nowrite
 bits 32
@@ -38,14 +41,9 @@ align 4
   dd 3h                         ; features
   dd -(3h + 1BADB002h)          ; checksum
 
-align 8
-_long_gdt:
-  dw _long_gdt_end - _long_gdt - 1
-  dd _long_gdt
-  dw 0
-  dq 0x00a09b0000000000         ; Code
-  dq 0x00a0930000000000         ; Data
-_long_gdt_end:
+_gdtp:
+  dw GDT_SIZE - 1
+  dd gdt
 
 global _start
 _start:
@@ -71,7 +69,7 @@ _start:
   mov eax, CR0_PE | CR0_MP | CR0_WP | CR0_PG
   mov cr0, eax
 
-  lgdt [_long_gdt]
+  lgdt [_gdtp]
   jmp RING0_CODE_SELECTOR:_start_long
 
 section .text.longinit
@@ -87,6 +85,17 @@ _start_long:
 
   lea rsp, [rel kern_stack_end]
 
+  mov rbx, _init_array_start
+  mov rbp, _init_array_end
+
+next_constructor:
+  cmp rbx, rbp
+  je done_with_contructors
+  call [rbx]
+  lea rbx, [rbx + 8]
+  jmp next_constructor
+
+done_with_contructors:
   call main
   ud2
 

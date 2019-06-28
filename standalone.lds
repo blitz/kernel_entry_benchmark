@@ -16,19 +16,22 @@ SECTIONS
       {
         *(.text.init)
         *(.text .text.*)
+      } : lo_rwx
 
+      .data :
+      {
         . = ALIGN(8);
         _init_array_start = .;
         KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*)))
         KEEP(*(.init_array))
         _init_array_end = .;
+        *(.rodata .rodata.*);
+        *(.data .data.*);
       } : lo_rwx
 
-      .data ALIGN(4K) :
+      .bss :
       {
-        *(.rodata .rodata.*)
-        *(.data .data.*)
-        *(.bss.bss.*)
+        *(.bss .bss.*);
       } : lo_rwx
 
       /DISCARD/ :
