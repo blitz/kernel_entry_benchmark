@@ -1,20 +1,15 @@
-dist: xenial
-sudo: require
+dist: bionic
 language: cpp
 compiler: gcc
 addons:
   apt:
-    packages:
-      - qemu-system-x86
-      - nasm
-      - g++
-      - python3-matplotlib
-      - python3-tk
+    update: true
 
 before_install:
   - sudo add-apt-repository -y ppa:jonathonf/tup
+  - sudo add-apt-repository -y ppa:jacob/virtualisation
   - sudo apt-get update -q
-  - sudo apt-get install -y tup
+  - sudo apt-get install -y tup qemu-system-x86 nasm g++ python3-matplotlib
 
 script:
     - tup

@@ -11,11 +11,12 @@ KERNEL=$1
 
 if [ -r /dev/kvm ]; then
     QEMUARGS="-machine q35,accel=kvm"
+    echo "Using KVM." > /dev/stderr
 else
     QEMUARGS="-machine q35,accel=tcg"
-    echo "No KVM available!" > /dev/stderr
+    echo "No KVM available." > /dev/stderr
 fi
 
-exec qemu-system-x86_64 -cpu Broadwell \
+exec qemu-system-x86_64 -cpu Broadwell -net none \
      $QEMUARGS \
      -display none -smp 1 -no-reboot -vga none -debugcon stdio -kernel "$KERNEL" -s
