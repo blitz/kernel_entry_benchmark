@@ -7,6 +7,7 @@
 extern "C" void asm_call_gate_entry();
 extern "C" void asm_int_gate_entry();
 extern "C" void asm_syscall_entry();
+extern "C" void asm_sysenter_entry();
 extern "C" char kern_stack_end[];
 
 extern "C" [[noreturn]] void main();
@@ -37,21 +38,6 @@ tss tss;
 static const uint8_t INT_GATE_VECTOR {32};
 
 static idt_desc idt[256];
-
-extern "C" void int_gate_entry(uint64_t *frame)
-{
-  // Do nothing and return.
-}
-
-extern "C" void call_gate_entry()
-{
-  // Do nothing and return.
-}
-
-extern "C" void syscall_entry()
-{
-  // Do nothing and return.
-}
 
 [[noreturn]] static void exit_via_retf(uint64_t user_rip)
 {
@@ -119,6 +105,23 @@ static void do_syscall()
                   "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
 }
 
+static void do_sysenter()
+{
+  static uint64_t saved_rbp;
+
+  asm volatile ("mov %%rbp, %[saved_rbp]\n"
+                "mov %%rsp, %%rcx\n"
+                "lea 1f(%%rip), %%rdx\n"
+                "sysenter\n"
+                "1: \n"
+                "mov %[saved_rbp], %%rbp\n"
+
+                : [saved_rbp] "=&m" (saved_rbp)
+                :
+                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
+                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+}
+
 [[noreturn]] static void user_do_call_gate()
 {
   const int repeat = 16 * 1024;
@@ -164,6 +167,19 @@ static void do_syscall()
 
   format("Syscall roundtrip (cycles): ", (end - start) / repeat, "\n");
 
+  // Sysenter measurements
+  for (int warm_up = 32; warm_up != 0; warm_up--) {
+    do_sysenter();
+  }
+
+  start = rdtsc();
+  for (int rounds = repeat; rounds != 0; rounds--) {
+    do_sysenter();
+  }
+  end = rdtsc();
+
+  format("Sysenter roundtrip (cycles): ", (end - start) / repeat, "\n");
+
   // Will triple fault...
   cli_hlt();
   __builtin_unreachable();
@@ -191,7 +207,17 @@ static void init_syscall()
 
   wrmsr(IA32_STAR, ((uint64_t)ring0_code_selector << 32) | (uint64_t)(ring3_code_selector - 0x10) << 48);
   wrmsr(IA32_FMASK, 0x700);     // Clear TF/DF/IF on system call entry
-  wrmsr(IA32_SYSENTER_CS, 0);   // Disable sysenter
+}
+
+static void init_sysenter()
+{
+  static_assert(ring0_code_selector + 0x8 == ring0_data_selector);
+  static_assert(ring0_code_selector + 0x10 + 3 == ring3_code_selector_sysenter);
+  static_assert(ring0_code_selector + 0x18 + 3 == ring3_data_selector);
+
+  wrmsr(IA32_SYSENTER_CS, ring0_code_selector);
+  wrmsr(IA32_SYSENTER_ESP, reinterpret_cast<uintptr_t>(kern_stack_end));
+  wrmsr(IA32_SYSENTER_EIP, reinterpret_cast<uintptr_t>(asm_sysenter_entry));
 }
 
 void main()
@@ -212,6 +238,7 @@ void main()
 
   allow_user_io();
   init_syscall();
+  init_sysenter();
 
   exit_via_retf(reinterpret_cast<uintptr_t>(&user_do_call_gate));
 
