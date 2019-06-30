@@ -15,7 +15,7 @@ CXXFLAGS += -mno-mmx -mno-sse -mno-sse2 -mno-avx -mno-avx2
 
 CXXFLAGS += -ffreestanding -fno-asynchronous-unwind-tables -fno-threadsafe-statics -fno-rtti -fno-exceptions
 
-LINKFLAGS = -g -nostdlib -Wl,-n -Wl,-T
+LINKFLAGS = -g -nostdlib -Wl,--build-id=none -Wl,-n -Wl,-T
 
 !cpp = |> $(CPP) -P $(CPPFLAGS) %f -o %o |>
 !cxx = |> $(CXX) $(CPPFLAGS) $(CXXFLAGS) -c %f -o %o |> %B.o
