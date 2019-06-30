@@ -21,8 +21,9 @@ gdt_desc gdt[] {
     {},
     gdt_desc::kern_code_desc(),
     gdt_desc::kern_data_desc(),
-    gdt_desc::user_data_desc(),
     gdt_desc::user_code_desc(),
+    gdt_desc::user_data_desc(),
+    gdt_desc::user_code_desc(), // Duplicated because of syscall/sysret selector requirements
 
     // TSS placeholders
     {}, {},

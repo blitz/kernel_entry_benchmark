@@ -30,7 +30,7 @@ extern gdt
 
 %define RING0_CODE_SELECTOR 0x08
 %define RING0_DATA_SELECTOR 0x10
-%define GDT_SIZE 0x48
+%define GDT_SIZE 0x50
 
 section .text.init progbits alloc exec nowrite
 bits 32
