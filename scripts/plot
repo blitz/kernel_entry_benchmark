@@ -4,6 +4,10 @@
 
 import csv
 import sys
+
+import matplotlib
+matplotlib.use('Agg')           # Otherwise, we crash without $DISPLAY set
+
 import matplotlib.pyplot as plt; plt.rcdefaults()
 import numpy as np
 import matplotlib.pyplot as plt

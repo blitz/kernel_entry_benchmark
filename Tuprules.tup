@@ -7,8 +7,12 @@ CPP = cpp
 CPPFLAGS  = -nostdinc
 
 CXX = c++
-CXXFLAGS += -g -O2 -march=x86-64 -mtune=skylake -std=c++17 -Wall -nostdinc++
-CXXFLAGS += -mno-red-zone  -mgeneral-regs-only
+CXXFLAGS += -g -O2 -march=x86-64 -mtune=broadwell -std=c++14 -Wall -nostdinc++
+CXXFLAGS += -mno-red-zone
+
+# Newer compilers can do -mgeneral-regs-only, but for old ones we have to do:
+CXXFLAGS += -mno-mmx -mno-sse -mno-sse2 -mno-avx -mno-avx2
+
 CXXFLAGS += -ffreestanding -fno-asynchronous-unwind-tables -fno-threadsafe-statics -fno-rtti -fno-exceptions
 
 LINKFLAGS = -g -nostdlib -Wl,-n -Wl,-T
