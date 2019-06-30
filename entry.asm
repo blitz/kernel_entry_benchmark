@@ -17,10 +17,11 @@ asm_int_gate_entry:
 
 align 16
 asm_syscall_entry:
+  ; The hardware sets RIP and clobbers RCX/R11.
   o64 sysret
 
 align 16
 asm_sysenter_entry:
-  ; Hardware clobbers RIP and RSP. Userspace has to give us RIP and userspace
+  ; Hardware sets RIP and RSP. Userspace has to give us RIP and userspace
   ; RSP to jump back via RDX/RCX.
   o64 sysexit

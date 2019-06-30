@@ -63,63 +63,28 @@ static void do_gate_call(uint16_t selector)
     uint16_t sel;
   } __packed;
 
-  static uint64_t saved_rbp;
-
   const farp gate { 0, ring3_call_selector };
-  asm volatile ("mov %%rbp, %[saved_rbp]\n"
-                "rex.W lcall *%[far_ptr]\n"
-                "mov %[saved_rbp], %%rbp\n"
-                : [saved_rbp] "=&m" (saved_rbp)
-                : [far_ptr] "m" (gate)
-                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
-                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+  asm volatile ("rex.W lcall *%[far_ptr]\n" :: [far_ptr] "m" (gate)
+);
 }
 
 static void do_int()
 {
-  static uint64_t saved_rbp;
-
-  asm volatile ("mov %%rbp, %[saved_rbp]\n"
-                "int %[vec]\n"
-                "mov %[saved_rbp], %%rbp\n"
-                : [saved_rbp] "=&m" (saved_rbp)
-                : [vec] "i" (INT_GATE_VECTOR)
-                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
-                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+  asm volatile ("int %[vec]\n" :: [vec] "i" (INT_GATE_VECTOR));
 }
 
 static void do_syscall()
 {
-  static uint64_t saved_rbp, saved_rsp;
-
-  asm volatile ("mov %%rbp, %[saved_rbp]\n"
-                "mov %%rsp, %[saved_rsp]\n"
-                "syscall\n"
-                "1:"
-                "mov %[saved_rbp], %%rbp\n"
-                "mov %[saved_rsp], %%rsp\n"
-                : [saved_rbp] "=&m" (saved_rbp),
-                  [saved_rsp] "=&m" (saved_rsp)
-                :
-                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
-                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+  asm volatile ("syscall\n" ::: "rcx", "r11");
 }
 
 static void do_sysenter()
 {
-  static uint64_t saved_rbp;
-
-  asm volatile ("mov %%rbp, %[saved_rbp]\n"
-                "mov %%rsp, %%rcx\n"
+  asm volatile ("mov %%rsp, %%rcx\n"
                 "lea 1f(%%rip), %%rdx\n"
                 "sysenter\n"
                 "1: \n"
-                "mov %[saved_rbp], %%rbp\n"
-
-                : [saved_rbp] "=&m" (saved_rbp)
-                :
-                : "rax", "rcx", "rdx", "rbx", "rbp", "rsi", "rdi",
-                  "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15");
+                ::: "rcx", "rdx");
 }
 
 [[noreturn]] static void user_do_call_gate()
