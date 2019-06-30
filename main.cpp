@@ -144,9 +144,14 @@ static void init_syscall()
 
 static void init_sysenter()
 {
-  static_assert(ring0_code_selector + 0x8 == ring0_data_selector);
-  static_assert(ring0_code_selector + 0x10 + 3 == ring3_code_selector_sysenter);
-  static_assert(ring0_code_selector + 0x18 + 3 == ring3_data_selector);
+  static_assert(ring0_code_selector + 0x8 == ring0_data_selector,
+                "Ring0 code and data selectors do not match SYSCALL layout");
+
+  static_assert(ring0_code_selector + 0x10 + 3 == ring3_code_selector_sysenter,
+                "Ring0 code and ring3 code selectors do not match SYSCALL layout");
+
+  static_assert(ring0_code_selector + 0x18 + 3 == ring3_data_selector,
+                "Ring0 code and ring3 data selectors do not match SYSCALL layout");
 
   wrmsr(IA32_SYSENTER_CS, ring0_code_selector);
   wrmsr(IA32_SYSENTER_ESP, reinterpret_cast<uintptr_t>(kern_stack_end));
