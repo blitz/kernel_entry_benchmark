@@ -9,6 +9,13 @@ fi
 
 KERNEL=$1
 
+if [ -r /dev/kvm ]; then
+    QEMUARGS="-machine q35,accel=kvm"
+else
+    QEMUARGS="-machine q35,accel=tcg"
+    echo "No KVM available!" > /dev/stderr
+fi
+
 exec qemu-system-x86_64 -cpu Broadwell \
-     -machine q35,accel=kvm,kernel-irqchip=split \
+     $QEMUARGS \
      -display none -smp 1 -no-reboot -vga none -debugcon stdio -kernel "$KERNEL" -s
