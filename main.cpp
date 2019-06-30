@@ -107,10 +107,10 @@ static void measure(const char *name, void (*fn)())
 
 [[noreturn]] static void user_measure()
 {
-  measure("int", [] () { do_int(); });
-  measure("callgate", [] () { do_gate_call(); });
-  measure("syscall", [] () { do_syscall(); });
-  measure("sysenter", [] () { do_sysenter(); });
+  measure("Interrupt Gate", [] () { do_int(); });
+  measure("Call Gate", [] () { do_gate_call(); });
+  measure("Syscall", [] () { do_syscall(); });
+  measure("Sysenter", [] () { do_sysenter(); });
 
   // We're done.
   outbi<0x64>(0xFE);            // PCI reset on qemu

@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+# Plot a CSV file with label value pairs.
+
+import csv
+import sys
+import matplotlib.pyplot as plt; plt.rcdefaults()
+import numpy as np
+import matplotlib.pyplot as plt
+
+output_file = sys.argv[1]
+
+reader = csv.reader(sys.stdin)
+
+labels = []
+values = []
+
+for row in reader:
+    labels.append(row[0])
+    values.append(int(row[1]))
+
+y_pos = np.arange(len(labels))
+
+plt.bar(y_pos, values, align='center', alpha=0.5)
+plt.xticks(y_pos, labels)
+plt.ylabel('Cycles')
+plt.title('System call roundtrip')
+
+plt.savefig(output_file)
+

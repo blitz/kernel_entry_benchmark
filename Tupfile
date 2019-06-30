@@ -9,3 +9,6 @@ CPPFLAGS += -Iinclude
 
 : kernel.elf64 |> strip -s %f -o %o |> kernel.elf64.strip
 : kernel.elf64.strip |> objcopy -O elf32-i386 %f %o |> kernel.elf32
+
+: kernel.elf32 |> ./scripts/run %f | ./scripts/unhex 1 > %o |> measurements.csv
+: measurements.csv |> ./scripts/plot %o < %f |> measurements.svg
