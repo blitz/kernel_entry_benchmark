@@ -56,14 +56,14 @@ static idt_desc idt[256];
   __builtin_unreachable();
 }
 
-static void do_gate_call(uint16_t selector)
+static void do_gate_call()
 {
   struct farp {
     uint64_t offset;
     uint16_t sel;
   } __packed;
 
-  const farp gate { 0, ring3_call_selector };
+  static const farp gate { 0, ring3_call_selector };
   asm volatile ("rex.W lcall *%[far_ptr]\n" :: [far_ptr] "m" (gate)
 );
 }
@@ -87,66 +87,34 @@ static void do_sysenter()
                 ::: "rcx", "rdx");
 }
 
-[[noreturn]] static void user_do_call_gate()
+static void measure(const char *name, void (*fn)())
 {
-  const int repeat = 16 * 1024;
-  uint64_t start, end;
+  const int measure_rounds = 16 * 1024;
+  const int warmup_rounds = 64;
 
-  // Call gate measurements
-  for (int warm_up = 32; warm_up != 0; warm_up--) {
-    do_gate_call(ring3_call_selector);
+  for (int warm_up = warmup_rounds; warm_up != 0; warm_up--) {
+    fn();
   }
 
-  start = rdtsc();
-  for (int rounds = repeat; rounds != 0; rounds--) {
-    do_gate_call(ring3_call_selector);
+  uint64_t start = rdtsc();
+  for (int rounds = measure_rounds; rounds != 0; rounds--) {
+    fn();
   }
-  end = rdtsc();
+  uint64_t end = rdtsc();
 
-  format("Call gate roundtrip (cycles): ", (end - start) / repeat, "\n");
+  format(name, ",", (end - start) / measure_rounds, "\n");
+}
 
+[[noreturn]] static void user_measure()
+{
+  measure("int", [] () { do_int(); });
+  measure("callgate", [] () { do_gate_call(); });
+  measure("syscall", [] () { do_syscall(); });
+  measure("sysenter", [] () { do_sysenter(); });
 
-  // Interrupt gate measurements
-  for (int warm_up = 32; warm_up != 0; warm_up--) {
-    do_int();
-  }
-
-  start = rdtsc();
-  for (int rounds = repeat; rounds != 0; rounds--) {
-    do_int();
-  }
-  end = rdtsc();
-
-  format("Interrupt gate roundtrip (cycles): ", (end - start) / repeat, "\n");
-
-  // Syscall measurements
-  for (int warm_up = 32; warm_up != 0; warm_up--) {
-    do_syscall();
-  }
-
-  start = rdtsc();
-  for (int rounds = repeat; rounds != 0; rounds--) {
-    do_syscall();
-  }
-  end = rdtsc();
-
-  format("Syscall roundtrip (cycles): ", (end - start) / repeat, "\n");
-
-  // Sysenter measurements
-  for (int warm_up = 32; warm_up != 0; warm_up--) {
-    do_sysenter();
-  }
-
-  start = rdtsc();
-  for (int rounds = repeat; rounds != 0; rounds--) {
-    do_sysenter();
-  }
-  end = rdtsc();
-
-  format("Sysenter roundtrip (cycles): ", (end - start) / repeat, "\n");
-
-  // Will triple fault...
-  cli_hlt();
+  // We're done.
+  outbi<0x64>(0xFE);            // PCI reset on qemu
+  cli_hlt();                    // This will triple fault
   __builtin_unreachable();
 }
 
@@ -205,7 +173,7 @@ void main()
   init_syscall();
   init_sysenter();
 
-  exit_via_retf(reinterpret_cast<uintptr_t>(&user_do_call_gate));
+  exit_via_retf(reinterpret_cast<uintptr_t>(&user_measure));
 
   cli_hlt();
 }
