@@ -17,6 +17,6 @@ else
     echo "No KVM available." > /dev/stderr
 fi
 
-exec qemu-system-x86_64 -cpu Broadwell -net none \
+exec qemu-system-x86_64 -cpu qemu64 -net none \
      $QEMUARGS \
      -display none -smp 1 -no-reboot -vga none -debugcon stdio -kernel "$KERNEL" -s
