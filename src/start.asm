@@ -16,17 +16,19 @@ extern gdt
 %define PTE_DEFAULT (PTE_P | PTE_W | PTE_U | PTE_A | PTE_D | PTE_G)
 
 %define IA32_EFER 0xC0000080
-%define IA32_EFER_SCE 0x001
-%define IA32_EFER_LME 0x100
-%define IA32_EFER_NXE 0x800
+%define IA32_EFER_SCE (1 << 0)
+%define IA32_EFER_LME (1 << 8)
+%define IA32_EFER_NXE (1 << 11)
 
 %define CR0_PE (1 << 0)
 %define CR0_MP (1 << 1)
 %define CR0_TS (1 << 3)
+%define CR0_NE (1 << 5)
 %define CR0_WP (1 << 16)
 %define CR0_PG (1 << 31)
 
 %define CR4_PAE (1 << 5)
+%define CR4_PGE (1 << 7)
 
 %define RING0_CODE_SELECTOR 0x08
 %define RING0_DATA_SELECTOR 0x10
@@ -52,12 +54,15 @@ _start:
   mov dword [ptab_pdpt], ptab_pd   + PTE_DEFAULT
   mov dword [ptab_pd + 8], (1 << 21) | PTE_DEFAULT | PTE_PS
 
+  ; Load 64-bit GDT
+  lgdt [_gdtp]
+
   ; Load page table
   mov eax, ptab_pml4
   mov cr3, eax
 
   ; Long mode initialization. See Intel SDM Vol. 3 Chapter 9.8.5.
-  mov eax, CR4_PAE
+  mov eax, CR4_PAE | CR4_PGE
   mov cr4, eax
 
   xor edx, edx
@@ -65,11 +70,11 @@ _start:
   mov ecx, IA32_EFER
   wrmsr
 
-  ; Enable paging.
-  mov eax, CR0_PE | CR0_MP | CR0_WP | CR0_PG
+  ; Enable paging and thus Long Mode.
+  mov eax, cr0
+  or eax, CR0_PG
   mov cr0, eax
 
-  lgdt [_gdtp]
   jmp RING0_CODE_SELECTOR:_start_long
 
 section .text.longinit
