@@ -42,16 +42,16 @@ static idt_desc idt[256];
 [[noreturn]] static void exit_via_retf(uint64_t user_rip)
 {
   asm volatile ("push %[user_ss]\n"
-                "push %[user_rsp]\n"
-                "push %[user_cs]\n"
-                "push %[user_rip]\n"
-                // Address width for far ret is 32-bit even in 64-bit mode.
-                "rex.W lret\n"
-                :
-                : [user_ss]  "ri" (static_cast<uint64_t>(ring3_data_selector)),
-                  [user_rsp] "ri" (reinterpret_cast<uintptr_t>(user_stack) + sizeof(user_stack)),
-                  [user_cs]  "ri" (static_cast<uint64_t>(ring3_code_selector)),
-                  [user_rip] "ri" (user_rip));
+		"push %[user_rsp]\n"
+		"push %[user_cs]\n"
+		"push %[user_rip]\n"
+		// Address width for far ret is 32-bit even in 64-bit mode.
+		"rex.W lret\n"
+		:
+		: [user_ss]  "ri" (static_cast<uint64_t>(ring3_data_selector)),
+		  [user_rsp] "ri" (reinterpret_cast<uintptr_t>(user_stack) + sizeof(user_stack)),
+		  [user_cs]  "ri" (static_cast<uint64_t>(ring3_code_selector)),
+		  [user_rip] "ri" (user_rip));
 
   __builtin_unreachable();
 }
@@ -81,10 +81,10 @@ static void do_syscall()
 static void do_sysenter()
 {
   asm volatile ("mov %%rsp, %%rcx\n"
-                "lea 1f(%%rip), %%rdx\n"
-                "sysenter\n"
-                "1: \n"
-                ::: "rcx", "rdx");
+		"lea 1f(%%rip), %%rdx\n"
+		"sysenter\n"
+		"1: \n"
+		::: "rcx", "rdx");
 }
 
 static void measure(const char *name, void (*fn)())
@@ -134,10 +134,10 @@ static void allow_user_io()
 {
   // Set IOPL to 3.
   asm volatile ("pushfq\n"
-                "or %0, (%%rsp)\n"
-                "popfq\n"
-                :
-                : "r" (3 << 12));
+		"or %0, (%%rsp)\n"
+		"popfq\n"
+		:
+		: "r" (3 << 12));
 }
 
 static void init_syscall()
@@ -145,10 +145,10 @@ static void init_syscall()
   wrmsr(IA32_LSTAR, reinterpret_cast<uintptr_t>(asm_syscall_entry));
 
   static_assert(ring0_code_selector + 0x8 == ring0_data_selector,
-                "Ring0 code and data selectors do not match SYSRET layout");
+		"Ring0 code and data selectors do not match SYSRET layout");
 
   static_assert(ring3_data_selector + 0x8 == ring3_code_selector,
-                "Ring0 code and data selectors do not match SYSRET layout");
+		"Ring0 code and data selectors do not match SYSRET layout");
 
   wrmsr(IA32_STAR, ((uint64_t)ring0_code_selector << 32) | (uint64_t)(ring3_code_selector - 0x10) << 48);
   wrmsr(IA32_FMASK, 0x700);     // Clear TF/DF/IF on system call entry
@@ -157,13 +157,13 @@ static void init_syscall()
 static void init_sysenter()
 {
   static_assert(ring0_code_selector + 0x8 == ring0_data_selector,
-                "Ring0 code and data selectors do not match SYSCALL layout");
+		"Ring0 code and data selectors do not match SYSCALL layout");
 
   static_assert(ring0_code_selector + 0x10 + 3 == ring3_code_selector_sysenter,
-                "Ring0 code and ring3 code selectors do not match SYSCALL layout");
+		"Ring0 code and ring3 code selectors do not match SYSCALL layout");
 
   static_assert(ring0_code_selector + 0x18 + 3 == ring3_data_selector,
-                "Ring0 code and ring3 data selectors do not match SYSCALL layout");
+		"Ring0 code and ring3 data selectors do not match SYSCALL layout");
 
   wrmsr(IA32_SYSENTER_CS, ring0_code_selector);
   wrmsr(IA32_SYSENTER_ESP, reinterpret_cast<uintptr_t>(kern_stack_end));
