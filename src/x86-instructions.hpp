@@ -103,3 +103,19 @@ inline cpuid_result query_cpuid(uint32_t eax, uint32_t ecx = 0)
 
   return res;
 }
+
+inline bool is_vendor_intel(cpuid_result const &res)
+{
+  return
+    res.ebx == 0x756e6547 &&
+    res.ecx == 0x6c65746e &&
+    res.edx == 0x49656e69;
+}
+
+inline bool is_vendor_amd(cpuid_result const &res)
+{
+  return
+    res.ebx == 0x68747541 &&
+    res.ecx == 0x444d4163 &&
+    res.edx == 0x69746e65;
+}

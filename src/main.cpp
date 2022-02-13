@@ -108,9 +108,21 @@ static void measure(const char *name, void (*fn)())
 [[noreturn]] static void user_measure()
 {
   measure("Interrupt Gate", [] () { do_int(); });
-  measure("Call Gate", [] () { do_gate_call(); });
+
+  if (is_vendor_amd(query_cpuid(0))) {
+    format("# Call Gate code is buggy on AMD, skipping.\n");
+  } else {
+    measure("Call Gate", [] () { do_gate_call(); });
+  }
+
   measure("Syscall", [] () { do_syscall(); });
-  measure("Sysenter", [] () { do_sysenter(); });
+
+  // This only works on Intel.
+  if (is_vendor_intel(query_cpuid(0))) {
+    measure("Sysenter", [] () { do_sysenter(); });
+  } else {
+    format("# Only Intel supports sysenter in Long Mode, skipping.\n");
+  }
 
   // We're done.
   outbi<0x64>(0xFE);            // PCI reset on qemu
