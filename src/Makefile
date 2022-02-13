@@ -7,7 +7,7 @@ ASFLAGS  += -g -f elf64 -F dwarf
 
 CPPFLAGS  = -nostdinc -I.
 
-CXXFLAGS += -g -O2 -march=x86-64 -mtune=broadwell -std=c++14 -Wall -nostdinc++
+CXXFLAGS += -g -O2 -march=x86-64 -mtune=broadwell -std=c++20 -Wall -nostdinc++
 CXXFLAGS += -mno-red-zone
 
 # Newer compilers can do -mgeneral-regs-only, but for old ones we have to do:
