@@ -13,7 +13,7 @@ extern gdt
 %define PTE_PS (1 << 7)
 %define PTE_G (1 << 8)
 
-%define PTE_DEFAULT (PTE_P | PTE_W | PTE_U | PTE_A | PTE_D | PTE_G)
+%define PTE_DEFAULT (PTE_P | PTE_W | PTE_U | PTE_A | PTE_D)
 
 %define IA32_EFER 0xC0000080
 %define IA32_EFER_SCE (1 << 0)
@@ -50,9 +50,9 @@ _gdtp:
 global _start
 _start:
   ; Construct 1:1 2MB mapping at 2MB
-  mov dword [ptab_pml4], ptab_pdpt + PTE_DEFAULT
+  mov dword [ptab_pml4], ptab_pdpt + PTE_DEFAULT ; PTE_G is reserved in PML4 on AMD.
   mov dword [ptab_pdpt], ptab_pd   + PTE_DEFAULT
-  mov dword [ptab_pd + 8], (1 << 21) | PTE_DEFAULT | PTE_PS
+  mov dword [ptab_pd + 8], (1 << 21) | PTE_DEFAULT | PTE_PS | PTE_G
 
   ; Load 64-bit GDT
   lgdt [_gdtp]
