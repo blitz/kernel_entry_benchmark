@@ -59,13 +59,14 @@ static idt_desc idt[256];
 static void do_gate_call()
 {
   struct farp {
-    uint64_t offset;
+    uint32_t offset;
     uint16_t sel;
   } __packed;
 
   static const farp gate { 0, ring3_call_selector };
-  asm volatile ("rex.W lcall *%[far_ptr]\n" :: [far_ptr] "m" (gate)
-);
+  // Adding a rex.W prefix to the far call, makes the far pointer have
+  // a 64-bit offset on Intel, but has no effect on AMD.
+  asm volatile ("lcall *%[far_ptr]\n" :: [far_ptr] "m" (gate));
 }
 
 static void do_int()
@@ -108,13 +109,7 @@ static void measure(const char *name, void (*fn)())
 [[noreturn]] static void user_measure()
 {
   measure("Interrupt Gate", [] () { do_int(); });
-
-  if (is_vendor_amd(query_cpuid(0))) {
-    format("# Call Gate code is buggy on AMD, skipping.\n");
-  } else {
-    measure("Call Gate", [] () { do_gate_call(); });
-  }
-
+  measure("Call Gate", [] () { do_gate_call(); });
   measure("Syscall", [] () { do_syscall(); });
 
   // This only works on Intel.
