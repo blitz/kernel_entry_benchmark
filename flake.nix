@@ -20,7 +20,7 @@
 
         benchmark-run = callPackage ./run.nix {};
 
-        benchmark = callPackage ./benchmark.nix {
+        benchmark-results = callPackage ./benchmark.nix {
           inherit benchmark-run;
           benchmark = kernel-entry-benchmark;
         };
