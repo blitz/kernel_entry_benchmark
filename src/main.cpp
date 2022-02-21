@@ -90,8 +90,8 @@ static void do_sysenter()
 
 static void measure(const char *name, void (*fn)())
 {
-  const int measure_rounds = 16 * 1024;
-  const int warmup_rounds = 64;
+  const int measure_rounds = 128 * 1024;
+  const int warmup_rounds = 32 * 1024;
 
   for (int warm_up = warmup_rounds; warm_up != 0; warm_up--) {
     fn();

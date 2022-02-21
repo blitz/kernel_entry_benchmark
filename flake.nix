@@ -18,7 +18,9 @@
       in rec {
         kernel-entry-benchmark = callPackage ./build.nix {};
 
-        benchmark-run = callPackage ./run.nix {};
+        benchmark-run = callPackage ./run.nix {
+          inherit kernel-entry-benchmark;
+        };
 
         benchmark-results = callPackage ./benchmark.nix {
           inherit benchmark-run;

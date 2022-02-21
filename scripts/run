@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -e -u
 
@@ -17,6 +17,8 @@ else
     echo "No KVM available." > /dev/stderr
 fi
 
-exec qemu-system-x86_64 -cpu qemu64 -net none \
+# Pin to one processor to get more stable numbers.
+exec taskset -c $(($(nproc) - 1)) \
+     qemu-system-x86_64 -cpu qemu64 -net none \
      $QEMUARGS \
      -display none -smp 1 -no-reboot -vga none -debugcon stdio -kernel "$KERNEL" -s

@@ -1,4 +1,5 @@
-{ stdenvNoCC, qemu, python3, lib, makeWrapper }:
+{ stdenvNoCC, qemu, util-linux, python3, lib, makeWrapper
+, kernel-entry-benchmark }:
 
 stdenvNoCC.mkDerivation {
   name = "benchmark-run";
@@ -18,7 +19,8 @@ stdenvNoCC.mkDerivation {
 
     patchShebangs run
     install -m 0755 run $out/bin/benchmark-run
-    wrapProgram $out/bin/benchmark-run --prefix PATH : ${lib.makeBinPath [ qemu ]}
+    wrapProgram $out/bin/benchmark-run --prefix PATH : ${lib.makeBinPath [ qemu util-linux ]} \
+      --add-flags '${kernel-entry-benchmark}'
 
     patchShebangs plot
     install -m 0755 plot $out/bin/benchmark-plot
