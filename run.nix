@@ -1,4 +1,4 @@
-{ stdenvNoCC, qemu, util-linux, python3, lib, makeWrapper
+{ stdenvNoCC, qemu, util-linux, lib, makeWrapper
 , kernel-entry-benchmark }:
 
 stdenvNoCC.mkDerivation {
@@ -7,7 +7,7 @@ stdenvNoCC.mkDerivation {
   src = ./scripts;
 
   nativeBuildInputs = [ makeWrapper ];
-  buildInputs = [ qemu (python3.withPackages (ps: [ ps.matplotlib ])) ];
+  buildInputs = [ qemu ];
 
   dontConfigure = true;
   dontBuild = true;
@@ -21,9 +21,6 @@ stdenvNoCC.mkDerivation {
     install -m 0755 run $out/bin/benchmark-run
     wrapProgram $out/bin/benchmark-run --prefix PATH : ${lib.makeBinPath [ qemu util-linux ]} \
       --add-flags '${kernel-entry-benchmark}'
-
-    patchShebangs plot
-    install -m 0755 plot $out/bin/benchmark-plot
 
     runHook postInstall
   '';

@@ -20,6 +20,10 @@ labels = []
 values = []
 
 for row in reader:
+    # Ignore comments
+    if row[0].startswith('#'):
+        continue
+
     labels.append(row[0])
     values.append(int(row[1]))
 

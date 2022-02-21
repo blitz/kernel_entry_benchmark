@@ -18,13 +18,13 @@
       in rec {
         kernel-entry-benchmark = callPackage ./build.nix {};
 
+        benchmark-plot = callPackage ./plot.nix {};
         benchmark-run = callPackage ./run.nix {
           inherit kernel-entry-benchmark;
         };
 
         benchmark-results = callPackage ./benchmark.nix {
-          inherit benchmark-run;
-          benchmark = kernel-entry-benchmark;
+          inherit benchmark-run benchmark-plot;
         };
       };
 
