@@ -7,6 +7,9 @@ void putc(char c);
 void put(const char *str);
 void put(uint64_t v);
 
+// The returned pointer is only valid till the next call to hex().
+const char *hex(uint64_t v);
+
 template <typename T>
 void format(T first)
 {

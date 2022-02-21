@@ -13,5 +13,5 @@ runCommand "benchmark-result" {
     exit 1
   fi
 
-  cat $out/benchmark.csv | benchmark-unhex 1 | benchmark-plot $out/benchmark.png
+  cat $out/benchmark.csv | benchmark-plot $out/benchmark.png
 ''

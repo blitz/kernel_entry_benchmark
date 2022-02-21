@@ -23,9 +23,6 @@ stdenvNoCC.mkDerivation {
     patchShebangs plot
     install -m 0755 plot $out/bin/benchmark-plot
 
-    patchShebangs unhex
-    install -m 0755 unhex $out/bin/benchmark-unhex
-
     runHook postInstall
   '';
 }

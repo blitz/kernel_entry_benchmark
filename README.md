@@ -57,15 +57,14 @@ Qemu debug console. You can run it as a Multiboot-compatible kernel:
 
 ```sh
 % qemu-system-x86_64 -kernel result -debugcon stdio  -no-reboot -enable-kvm
-Interrupt Gate,0x376
-Call Gate,0x1cf
-Syscall,0x82
+Interrupt Gate,610
+Call Gate,473
+Syscall,99
 ```
 
 The output is in CSV format. The first column is the kernel entry
 method and the second is the length of a roundtrip to the kernel using
-this method in cycles. You can pipe it through `./scripts/unhex 1` to
-convert the cycles to decimal.
+this method in cycles.
 
 I leave implementing serial output and running it on real hardware as
 an exercise to the reader.
